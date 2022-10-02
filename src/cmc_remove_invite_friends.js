@@ -4,7 +4,7 @@
 // @match       https://coinmarketcap.com/account/my-diamonds/
 // @grant       none
 // @version     1.0
-// @author      Ran#
+// @author      Ran# <ran-n@tutanota.com>
 // @description 10/2/2022, 10:17:36 PM
 // @downloadURL https://raw.githubusercontent.com/Ran-n/monke/main/cmc_remove_invite_friends.js
 // @homepageURL https://github.com/Ran-n/monke/blob/main/cmc_remove_invite_friends.js
