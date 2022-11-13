@@ -15,3 +15,5 @@
 if (window.location.href.includes('twitter.com')) {
     window.location.replace(window.location.href.replace('twitter.com', 'nitter.net'));
 }
+
+console.log('test')
