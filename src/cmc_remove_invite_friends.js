@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name        No invite friends
+// @name        CMC: No friend inviting
 // @namespace   Violentmonkey Scripts
 // @match       https://coinmarketcap.com/account/my-diamonds/
 // @grant       none
