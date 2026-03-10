@@ -4,7 +4,7 @@
 // @version     4.4
 // @description Reshape onepiecetopdecks.com deck pages to personal preference: kill sidebar, expand gallery, show card codes on images.
 // @grant       GM_xmlhttpRequest
-// @author      ran-n
+// @author      Ran#
 // @match       https://onepiecetopdecks.com/deck-list/*
 // @license     GPL-3.0-only; https://www.gnu.org/licenses/gpl-3.0.html
 // @homepageURL https://github.com/Ran-n/monke/blob/main/src/format_topdecks.js
