@@ -287,11 +287,24 @@
 
             /* Card label */
             .deck-card-label {
+                position: relative;
                 font-family: ui-monospace, 'Cascadia Code', 'Fira Mono', monospace;
                 font-size: 15px; font-weight: 700;
                 text-align: center; padding: 5px 4px 4px;
                 background: #111; color: #d4d4d4; letter-spacing: 0.4px;
             }
+            .deck-label-copy-btn {
+                position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+                width: 20px; height: 20px;
+                display: flex; align-items: center; justify-content: center;
+                background: transparent; color: #666;
+                border: none; border-radius: 4px;
+                cursor: pointer; padding: 0; opacity: 0;
+                transition: opacity 0.15s, color 0.15s;
+            }
+            .deck-label-copy-btn svg { width: 11px; height: 11px; }
+            .deck-grid-col:hover .deck-label-copy-btn { opacity: 1; }
+            .deck-label-copy-btn:hover { color: #f4f4f5; }
 
             /* Action button row */
             .deck-btn-row { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
@@ -393,7 +406,7 @@
     // --- Parse "NxCODE" lines from text decklist ---
     function parseDecklist(text) {
         return text.split('\n').reduce((acc, line) => {
-            const m = line.match(/^(\d+)x([A-Z]{1,3}\d{2}-\d+)/i);
+            const m = line.match(/^(\d+)x([A-Z]{1,3}\d*-\d+)/i);
             if (m) acc.push({ count: +m[1], code: m[2].toUpperCase() });
             return acc;
         }, []);
@@ -411,7 +424,22 @@
         }
         const label = document.createElement('div');
         label.className = 'deck-card-label';
-        label.textContent = text;
+        const labelText = document.createElement('span');
+        labelText.textContent = text;
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'deck-label-copy-btn';
+        copyBtn.innerHTML = IC_COPY;
+        copyBtn.title = 'Copy card code';
+        copyBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            const orig = copyBtn.innerHTML;
+            navigator.clipboard?.writeText(text.replace(/^\d+x/i, '')).then(() => {
+                copyBtn.innerHTML = IC_CHECK;
+                setTimeout(() => { copyBtn.innerHTML = orig; }, 1200);
+            }).catch(() => {});
+        });
+        label.appendChild(labelText);
+        label.appendChild(copyBtn);
         col.appendChild(label);
     }
 
