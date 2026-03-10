@@ -9,9 +9,9 @@
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=cardmarket.com
 // @grant        GM_setClipboard
 // @license      GPLv3
-// @homepageURL  https://github.com/Ran-n/monke/blob/main/src/cm_export_wishlist.js
-// @downloadURL  https://github.com/Ran-n/monke/blob/main/src/cm_export_wishlist.js
-// @updateURL    https://github.com/Ran-n/monke/blob/main/src/cm_export_wishlist.js
+// @homepageURL  https://github.com/Ran-n/monke/blob/main/src/cardmarket/cm_export_wishlist.js
+// @downloadURL  https://github.com/Ran-n/monke/blob/main/src/cardmarket/cm_export_wishlist.js
+// @updateURL    https://github.com/Ran-n/monke/blob/main/src/cardmarket/cm_export_wishlist.js
 // ==/UserScript==
 
 (function () {

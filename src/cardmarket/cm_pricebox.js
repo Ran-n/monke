@@ -9,9 +9,9 @@
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=cardmarket.com
 // @grant        none
 // @license      GPLv3
-// @homepageURL  https://github.com/Ran-n/monke/blob/main/src/cm_pricebox.js
-// @downloadURL  https://raw.githubusercontent.com/Ran-n/monke/main/src/cm_pricebox.js
-// @updateURL    https://raw.githubusercontent.com/Ran-n/monke/main/src/cm_pricebox.js
+// @homepageURL  https://github.com/Ran-n/monke/blob/main/src/cardmarket/cm_pricebox.js
+// @downloadURL  https://raw.githubusercontent.com/Ran-n/monke/main/src/cardmarket/cm_pricebox.js
+// @updateURL    https://raw.githubusercontent.com/Ran-n/monke/main/src/cardmarket/cm_pricebox.js
 // ==/UserScript==
 
 // TODO: Show item count too global and perWorld? Would have to load all the elements

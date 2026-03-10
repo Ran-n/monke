@@ -8,9 +8,9 @@
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=cardmarket.com
 // @grant        none
 // @license      GPLv3
-// @homepageURL  https://github.com/Ran-n/monke/blob/main/src/cm_always_pics.js
-// @downloadURL  https://raw.githubusercontent.com/Ran-n/monke/main/src/cm_always_pics.js
-// @updateURL    https://raw.githubusercontent.com/Ran-n/monke/main/src/cm_always_pics.js
+// @homepageURL  https://github.com/Ran-n/monke/blob/main/src/cardmarket/cm_always_pics.js
+// @downloadURL  https://raw.githubusercontent.com/Ran-n/monke/main/src/cardmarket/cm_always_pics.js
+// @updateURL    https://raw.githubusercontent.com/Ran-n/monke/main/src/cardmarket/cm_always_pics.js
 // ==/UserScript==
 
 const link = new URLSearchParams(window.location.search);
