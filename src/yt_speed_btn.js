@@ -9,9 +9,9 @@
 // @icon         
 // @grant        none
 // @license      GPLv3
-// @homepageURL  https://github.com/Ran-n/monke/blob/main/src/youtube/yt_speed_btn.js
-// @downloadURL  https://raw.githubusercontent.com/Ran-n/monke/main/src/youtube/yt_speed_btn.js
-// @updateURL    https://raw.githubusercontent.com/Ran-n/monke/main/src/youtube/yt_speed_btn.js
+// @homepageURL  https://github.com/Ran-n/monke/blob/main/src/yt_speed_btn.js
+// @downloadURL  https://raw.githubusercontent.com/Ran-n/monke/main/src/yt_speed_btn.js
+// @updateURL    https://raw.githubusercontent.com/Ran-n/monke/main/src/yt_speed_btn.js
 // ==/UserScript==
 
 (function () {
