@@ -125,7 +125,7 @@
         const images = await Promise.all(columns.map(async col => {
             const imgEl = col.querySelector('img');
             if (!imgEl) return null;
-            try { return await blobToImg(await gmFetchBlob(imgEl.src)); }
+            try { return await blobToImg(await fetch(imgEl.src).then(r => r.blob())); }
             catch { return null; }
         }));
 
@@ -199,21 +199,15 @@
             btn.disabled = true;
             let success = false;
             try {
-                const blob = await renderDeckImage(getColumns());
-                try {
-                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                    success = true;
-                } catch {
-                    const url = URL.createObjectURL(blob);
-                    const a = Object.assign(document.createElement('a'), { href: url, download: 'deck.png', style: 'display:none' });
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    setTimeout(() => URL.revokeObjectURL(url), 1000);
-                    success = true;
-                }
+                // Pass a Promise to ClipboardItem so clipboard.write() is called
+                // immediately (preserving user activation), while rendering happens async.
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': renderDeckImage(getColumns()) })
+                ]);
+                success = true;
             } catch (err) {
-                console.error('[topdecks] renderDeckImage failed:', err);
+                console.error('[topdecks] clipboard.write failed:', err);
+                alert('Clipboard copy failed: ' + err);
             }
             btn.innerHTML = success ? IC_CHECK : IC_IMG;
             btn.disabled = false;
