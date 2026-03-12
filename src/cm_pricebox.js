@@ -2,18 +2,18 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2025/11/26 11:03:22.000000
-//+ Revised:	2026/03/12 10:46:02.029080
+//+ Revised:	2026/03/12 10:56:18.964702
 // ------------------------------------------------------------------------
 
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
-// @version      1.7.1
+// @version      1.7.2
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable, copy-as-image includes card art)
 // @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=cardmarket.com
-// @grant        none
+// @grant        GM_xmlhttpRequest
 // @license      GPLv3
 // @homepageURL  https://github.com/Ran-n/monke/blob/main/src/cm_pricebox.js
 // @downloadURL  https://raw.githubusercontent.com/Ran-n/monke/main/src/cm_pricebox.js
@@ -78,18 +78,24 @@
         } catch { return null; }
     };
 
-    // Load the main card image from the page as an HTMLImageElement (crossOrigin=anonymous
-    // so it can be drawn to canvas without tainting it).
+    // Load the main card image via GM_xmlhttpRequest (bypasses CORS on S3 origin)
+    // then create an object URL so the canvas doesn't get tainted.
     // CardMarket singles pages have the card art in img.is-front.
     const getCardImage = () => {
         const src = document.querySelector('img.is-front')?.src;
         if (!src) return Promise.resolve(null);
         return new Promise((resolve) => {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => resolve(img);
-            img.onerror = () => resolve(null);
-            img.src = src;
+            GM_xmlhttpRequest({
+                method: 'GET', url: src, responseType: 'blob',
+                onload: (resp) => {
+                    const url = URL.createObjectURL(resp.response);
+                    const img = new Image();
+                    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+                    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+                    img.src = url;
+                },
+                onerror: () => resolve(null),
+            });
         });
     };
 
