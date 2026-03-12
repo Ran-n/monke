@@ -2,13 +2,13 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2025/11/26 11:03:22.000000
-//+ Revised:	2026/03/12 12:46:06.500373
+//+ Revised:	2026/03/12 14:16:10.487652
 // ------------------------------------------------------------------------
 
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
-// @version      1.7.8
+// @version      1.7.9
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable, copy-as-image includes card art)
 // @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
@@ -81,33 +81,42 @@
 
     // Load the main card image via GM_xmlhttpRequest (bypasses CORS on S3 origin)
     // then create an object URL so the canvas doesn't get tainted.
-    // Try multiple selectors; always require an S3 URL (never the placeholder).
+    // Don't rely on echo.js removing the 'lazy' class — instead match directly on
+    // src/data-echo containing the S3 domain to find the loaded vs. pending slide.
     const getCardImage = () => {
         const S3 = 'product-images.s3.cardmarket.com';
-        const els = [
-            document.querySelector(`img.is-front:not(.lazy)`),  // current slide (already loaded)
-            document.querySelector('img.is-front'),
-            document.querySelector(`img[data-echo*="${S3}"]`),
-            document.querySelector(`img[src*="${S3}"]`),
+        // Priority: is-front whose src is already the S3 URL (loaded current card)
+        //         > is-front with an S3 data-echo (may be prev/next card in slideshow)
+        //         > any img with S3 src/echo as last resort
+        const candidates = [
+            [document.querySelector(`img.is-front[src*="${S3}"]`),       'src'],
+            [document.querySelector(`img.is-front[data-echo*="${S3}"]`), 'echo'],
+            [document.querySelector(`img[src*="${S3}"]`),                'src'],
+            [document.querySelector(`img[data-echo*="${S3}"]`),          'echo'],
         ];
         let src = null;
-        for (const el of els) {
+        for (const [el, attr] of candidates) {
             if (!el) continue;
-            const s = el.dataset.echo || el.src;
-            if (s?.includes(S3)) { src = s; break; }
+            src = attr === 'src' ? el.src : el.dataset.echo;
+            if (src) break;
         }
+        console.log('[PriceBox] getCardImage src:', src);
         if (!src) return Promise.resolve(null);
         return new Promise((resolve) => {
             GM_xmlhttpRequest({
                 method: 'GET', url: src, responseType: 'blob',
-                onload: (resp) => {
-                    const url = URL.createObjectURL(resp.response);
+                onload: ({ response: blob }) => {
+                    if (!blob || blob.size < 200) {
+                        console.log('[PriceBox] getCardImage: bad blob size', blob?.size);
+                        resolve(null); return;
+                    }
+                    const objUrl = URL.createObjectURL(blob);
                     const img = new Image();
-                    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-                    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
-                    img.src = url;
+                    img.onload = () => { URL.revokeObjectURL(objUrl); resolve(img); };
+                    img.onerror = () => { URL.revokeObjectURL(objUrl); console.log('[PriceBox] getCardImage: img.onerror'); resolve(null); };
+                    img.src = objUrl;
                 },
-                onerror: () => resolve(null),
+                onerror: (e) => { console.log('[PriceBox] getCardImage: onerror', e); resolve(null); },
             });
         });
     };
