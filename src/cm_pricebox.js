@@ -2,14 +2,14 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2025/11/26 11:03:22.000000
-//+ Revised:	2026/03/12 09:51:14.888527
+//+ Revised:	2026/03/12 10:31:29.532612
 // ------------------------------------------------------------------------
 
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
-// @version      1.6.0
-// @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable)
+// @version      1.7.0
+// @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable, copy-as-image includes card art)
 // @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=cardmarket.com
@@ -73,6 +73,22 @@
             return await new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onloadend = () => { _flagDataUrlCache[code] = reader.result; resolve(reader.result); };
+                reader.readAsDataURL(blob);
+            });
+        } catch { return null; }
+    };
+
+    // Fetch the main product/card image from the page as a base64 data URL.
+    // CardMarket singles pages have the card art in .col-centerblock or .product-image.
+    const getCardImageDataUrl = async () => {
+        const img = document.querySelector('.col-centerblock img, .product-image img, #ProductDetailsPage img');
+        if (!img?.src) return null;
+        try {
+            const resp = await fetch(img.src);
+            const blob = await resp.blob();
+            return await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
                 reader.readAsDataURL(blob);
             });
         } catch { return null; }
@@ -202,9 +218,10 @@
 
     // Draw prices directly to a canvas (avoids SVG foreignObject which is
     // unreliable in Chromium and Firefox for HTML-with-images rendering).
-    async function drawPricesToCanvas(p, title, sub) {
+    async function drawPricesToCanvas(p, title, sub, cardImgDataUrl) {
         const PAD = 14, W = 320, SCALE = 2, FONT = 'Arial';
         const LINE_H = 20, ROW_H = 22, DIV_H = 9;
+        const CARD_MAX_W = W - PAD * 2, CARD_MAX_H = 200;
         const now = new Date().toLocaleString();
         const url = location.href;
 
@@ -221,6 +238,24 @@
             });
         }));
 
+        // Load card image and compute draw dimensions (preserve aspect ratio)
+        let cardImg = null, cardDrawW = 0, cardDrawH = 0;
+        if (cardImgDataUrl) {
+            cardImg = await new Promise((res) => {
+                const img = new Image();
+                img.onload = () => res(img);
+                img.onerror = () => res(null);
+                img.src = cardImgDataUrl;
+            });
+            if (cardImg) {
+                const ratio = cardImg.naturalWidth / cardImg.naturalHeight;
+                cardDrawH = Math.min(CARD_MAX_H, cardImg.naturalHeight);
+                cardDrawW = cardDrawH * ratio;
+                if (cardDrawW > CARD_MAX_W) { cardDrawW = CARD_MAX_W; cardDrawH = cardDrawW / ratio; }
+            }
+        }
+        const cardSectionH = cardImg ? cardDrawH + DIV_H + 8 : 0;
+
         const numericValues = COUNTRIES.map(c => parseFloat(p[c.key])).filter(v => !isNaN(v));
         const minVal = numericValues.length ? Math.min(...numericValues) : 0;
 
@@ -235,6 +270,7 @@
         }
 
         const totalH = PAD + LINE_H + (sub ? LINE_H : 0) + DIV_H
+            + cardSectionH
             + COUNTRIES.length * ROW_H + DIV_H + LINE_H + urlLineCount * LINE_H + PAD;
 
         const canvas = document.createElement('canvas');
@@ -270,6 +306,14 @@
         }
 
         drawDivider();
+
+        // Card image (centered)
+        if (cardImg) {
+            const imgX = PAD + (CARD_MAX_W - cardDrawW) / 2;
+            ctx.drawImage(cardImg, imgX, y + 4, cardDrawW, cardDrawH);
+            y += cardDrawH + 8;
+            drawDivider();
+        }
 
         // Country rows
         for (let i = 0; i < COUNTRIES.length; i++) {
@@ -584,9 +628,9 @@
         copyBtn.onclick = async () => {
             copyBtn.disabled = true;
             try {
-                const rows = await waitForRows();
+                const [rows, cardImgDataUrl] = await Promise.all([waitForRows(), getCardImageDataUrl()]);
                 const p = extractPrices(rows);
-                const canvas = await drawPricesToCanvas(p, mainTitle, subtitle);
+                const canvas = await drawPricesToCanvas(p, mainTitle, subtitle, cardImgDataUrl);
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 const ok = await copyBlobToClipboard(blob);
                 copyBtn.textContent = ok ? ICONS.ok : ICONS.ko;
