@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
-// @version      1.3.0
+// @version      1.3.1
 // @description  2026-03-12
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable)
 // @author       Ran# <ran-n@tutanota.com>
@@ -256,23 +256,24 @@
     const createFloatingWidget = (prices) => {
         const { mainTitle, subtitle } = getProductNameParts();
 
-        // Outer shell
+        // Outer shell — width:max-content so price rows never clip,
+        // capped at 300px so very long titles don't blow up the layout.
         const widget = document.createElement('div');
         Object.assign(widget.style, {
-            position:      'absolute',
-            zIndex:        '9999',
-            background:    '#1e1e1e',
-            border:        '1px solid #444',
-            borderRadius:  '6px',
-            padding:       '8px 10px',
-            boxShadow:     '0 2px 8px rgba(0,0,0,0.4)',
-            fontSize:      '13px',
-            lineHeight:    '1.4',
-            fontFamily:    'Arial, sans-serif',
-            color:         '#f0f0f0',
-            maxWidth:      '190px',
-            wordWrap:      'break-word',
-            transform:     `scale(${WINDOW_SCALE})`,
+            position:        'absolute',
+            zIndex:          '9999',
+            background:      '#1e1e1e',
+            border:          '1px solid #444',
+            borderRadius:    '6px',
+            padding:         '8px 10px',
+            boxShadow:       '0 2px 8px rgba(0,0,0,0.4)',
+            fontSize:        '13px',
+            lineHeight:      '1.4',
+            fontFamily:      'Arial, sans-serif',
+            color:           '#f0f0f0',
+            width:           'max-content',
+            maxWidth:        '300px',
+            transform:       `scale(${WINDOW_SCALE})`,
             transformOrigin: 'top left',
         });
 
@@ -297,36 +298,31 @@
             const numericValues = COUNTRIES.map(c => parseFloat(p[c.key])).filter(v => !isNaN(v));
             const minVal = numericValues.length ? Math.min(...numericValues) : 0;
 
-            const gridHTML = COUNTRIES.map((c) => {
+            // Single-column list — each row is fully inline (white-space:nowrap)
+            // so no price/percentage ever wraps or gets clipped. The widget
+            // auto-sizes to the widest row via width:max-content on the shell.
+            const rowsHTML = COUNTRIES.map((c) => {
                 const val = parseFloat(p[c.key]);
                 let pctHtml = '';
                 if (!isNaN(val) && minVal > 0 && c.label !== 'World') {
                     const diff = ((val - minVal) / minVal) * 100;
-                    const pctColor = getColorForPct(diff);
-                    // overflow: hidden + white-space: nowrap prevents this from
-                    // spilling outside the grid cell
-                    pctHtml = `
-                        <span style="
-                            color:${pctColor};font-size:11px;margin-left:20px;
-                            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-                            display:block;max-width:calc(100% - 20px);
-                        ">(+${diff.toFixed(2)}%)</span>`;
+                    pctHtml = `<span style="color:${getColorForPct(diff)};font-size:11px;margin-left:6px;">(+${diff.toFixed(2)}%)</span>`;
                 }
                 return `
-                    <div style="display:flex;flex-direction:column;align-items:flex-start;min-width:0;overflow:hidden;">
-                      <span style="display:inline-flex;align-items:center;gap:4px;color:#888;white-space:nowrap;">
-                        ${flagHtml(c)}&nbsp;<span style="color:${c.color}">${p[c.key]}</span><span>${SYMBOL_MONEY}</span>
+                    <div style="display:flex;align-items:center;white-space:nowrap;">
+                      <span style="display:inline-flex;align-items:center;gap:4px;color:#888;">
+                        ${flagHtml(c)}&nbsp;<span style="color:${c.color};">${p[c.key]}</span><span>${SYMBOL_MONEY}</span>
                       </span>
                       ${pctHtml}
                     </div>`;
             }).join('');
 
             content.innerHTML = `
-                <div style="margin-bottom:6px;">
+                <div style="margin-bottom:6px;max-width:280px;word-break:break-word;">
                   <div><strong style="color:#ccc">${mainTitle}</strong></div>
                   ${subtitle ? `<div style="color:#777;font-size:12px;margin-top:2px;">${subtitle}</div>` : ''}
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">${gridHTML}</div>`;
+                <div style="display:flex;flex-direction:column;gap:3px;">${rowsHTML}</div>`;
         };
 
         // ── Visibility state ────────────────────────────────────────────────
