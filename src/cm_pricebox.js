@@ -2,13 +2,13 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2025/11/26 11:03:22.000000
-//+ Revised:	2026/03/12 12:30:00.000000
+//+ Revised:	2026/03/12 13:00:00.000000
 // ------------------------------------------------------------------------
 
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
-// @version      1.5.1
+// @version      1.6.0
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable)
 // @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
@@ -30,6 +30,7 @@
     const WINDOW_HEIGHT_OFFSET = 57;
     const WINDOW_WIDTH_OFFSET = 165;
     const WIDGET_VISIBILITY_KEY = 'OPTCG_CM_PRICEBOX_VISIBILITY';
+    const WIDGET_POSITION_KEY   = 'OPTCG_CM_PRICEBOX_POS';
 
     // flagCode: ISO 3166-1 alpha-2 for flagcdn.com; omit for emoji-only entries
     const COUNTRIES = [
@@ -332,6 +333,57 @@
         }
     }
 
+    // ─── Widget placement ─────────────────────────────────────────────────────
+
+    // Try to insert the widget inline in the page flow, directly above the
+    // article/offers table. Returns true if successful.
+    const tryInsertInline = (widget) => {
+        const table = document.querySelector('.article-row')?.closest('table');
+        if (!table) return false;
+        const insertBefore = table.closest('section, .table-responsive') ?? table.parentElement;
+        if (!insertBefore?.parentElement) return false;
+
+        Object.assign(widget.style, {
+            position: 'relative', zIndex: '', transform: '', transformOrigin: '',
+            width: '100%', maxWidth: '', marginBottom: '12px', cursor: '',
+        });
+        insertBefore.parentElement.insertBefore(widget, insertBefore);
+        return true;
+    };
+
+    // Make the widget draggable (used as fallback when inline insertion fails).
+    // Saves and restores position via localStorage.
+    const enableDrag = (widget) => {
+        const saved = JSON.parse(localStorage.getItem(WIDGET_POSITION_KEY) || 'null');
+        if (saved) { widget.style.top = `${saved.top}px`; widget.style.left = `${saved.left}px`; }
+
+        widget.style.cursor = 'grab';
+        let dragging = false, ox = 0, oy = 0;
+
+        widget.addEventListener('mousedown', (e) => {
+            if (e.target.closest('button')) return;
+            dragging = true;
+            ox = e.clientX - widget.getBoundingClientRect().left;
+            oy = e.clientY - widget.getBoundingClientRect().top;
+            widget.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            widget.style.left = `${window.scrollX + e.clientX - ox}px`;
+            widget.style.top  = `${window.scrollY + e.clientY - oy}px`;
+        });
+        document.addEventListener('mouseup', () => {
+            if (!dragging) return;
+            dragging = false;
+            widget.style.cursor = 'grab';
+            localStorage.setItem(WIDGET_POSITION_KEY, JSON.stringify({
+                top:  parseInt(widget.style.top),
+                left: parseInt(widget.style.left),
+            }));
+        });
+    };
+
     // ─── Colour helper ────────────────────────────────────────────────────────
 
     const getColorForPct = (pct) => {
@@ -550,17 +602,19 @@
         widget.append(headerBar, content);
         document.body.appendChild(widget);
 
-        const updatePosition = () => {
-            const dd = findPriceTrendDd();
-            if (!dd) return;
-            const rect = dd.getBoundingClientRect();
-            widget.style.top  = `${window.scrollY + rect.top  - WINDOW_HEIGHT_OFFSET}px`;
-            widget.style.left = `${window.scrollX + rect.right - WINDOW_WIDTH_OFFSET}px`;
-        };
-
-        updatePosition();
-        window.addEventListener('scroll', updatePosition);
-        window.addEventListener('resize', updatePosition);
+        if (!tryInsertInline(widget)) {
+            // Inline insertion failed — use draggable floating widget.
+            // Set a sensible default position if none is saved.
+            if (!localStorage.getItem(WIDGET_POSITION_KEY)) {
+                const dd = findPriceTrendDd();
+                if (dd) {
+                    const rect = dd.getBoundingClientRect();
+                    widget.style.top  = `${window.scrollY + rect.top  - WINDOW_HEIGHT_OFFSET}px`;
+                    widget.style.left = `${window.scrollX + rect.right - WINDOW_WIDTH_OFFSET}px`;
+                }
+            }
+            enableDrag(widget);
+        }
     };
 
     // ─── Entry point ──────────────────────────────────────────────────────────
