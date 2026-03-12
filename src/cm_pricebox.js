@@ -2,13 +2,13 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2025/11/26 11:03:22.000000
-//+ Revised:	2026/03/12 14:21:34.193902
+//+ Revised:	2026/03/12 14:27:17.706114
 // ------------------------------------------------------------------------
 
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
-// @version      1.8.0
+// @version      1.8.1
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable, copy-as-image includes card art)
 // @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
@@ -79,50 +79,28 @@
         } catch { return null; }
     };
 
-    // Load the main card image via GM_xmlhttpRequest (bypasses CORS on S3 origin)
-    // then create an object URL so the canvas doesn't get tainted.
-    // Don't rely on echo.js removing the 'lazy' class — instead match directly on
-    // src/data-echo containing the S3 domain to find the loaded vs. pending slide.
+    // Load the current product image via GM_xmlhttpRequest, then convert to a
+    // data URL for canvas (CSP blocks blob: URLs; data: is allowed).
     const getCardImage = () => {
-        const S3 = 'product-images.s3.cardmarket.com';
-        // Priority: is-front whose src is already the S3 URL (loaded current card)
-        //         > is-front with an S3 data-echo (may be prev/next card in slideshow)
-        //         > any img with S3 src/echo as last resort
-        const candidates = [
-            [document.querySelector(`img.is-front[src*="${S3}"]`),       'src'],
-            [document.querySelector(`img.is-front[data-echo*="${S3}"]`), 'echo'],
-            [document.querySelector(`img[src*="${S3}"]`),                'src'],
-            [document.querySelector(`img[data-echo*="${S3}"]`),          'echo'],
-        ];
-        let src = null;
-        for (const [el, attr] of candidates) {
-            if (!el) continue;
-            src = attr === 'src' ? el.src : el.dataset.echo;
-            if (src) break;
-        }
-        console.log('[PriceBox] getCardImage src:', src);
+        const el = document.querySelector('img.is-front:not(.lazy)');
+        const src = el?.src;
         if (!src) return Promise.resolve(null);
         return new Promise((resolve) => {
             GM_xmlhttpRequest({
                 method: 'GET', url: src, responseType: 'blob',
                 onload: ({ response: blob }) => {
-                    if (!blob || blob.size < 200) {
-                        console.log('[PriceBox] getCardImage: bad blob size', blob?.size);
-                        resolve(null); return;
-                    }
-                    // Use a data URL instead of an object URL — CardMarket's CSP
-                    // blocks blob: in img-src, which would cause img.onerror.
+                    if (!blob || blob.size < 200) { resolve(null); return; }
                     const reader = new FileReader();
                     reader.onloadend = () => {
                         const img = new Image();
                         img.onload = () => resolve(img);
-                        img.onerror = () => { console.log('[PriceBox] getCardImage: img.onerror (data url)'); resolve(null); };
+                        img.onerror = () => resolve(null);
                         img.src = reader.result;
                     };
-                    reader.onerror = () => { console.log('[PriceBox] getCardImage: reader.onerror'); resolve(null); };
+                    reader.onerror = () => resolve(null);
                     reader.readAsDataURL(blob);
                 },
-                onerror: (e) => { console.log('[PriceBox] getCardImage: onerror', e); resolve(null); },
+                onerror: () => resolve(null),
             });
         });
     };
