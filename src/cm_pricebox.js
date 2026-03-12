@@ -2,6 +2,7 @@
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
 // @version      1.3.0
+// @description  2026-03-12
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable)
 // @author       Ran# <ran-n@tutanota.com>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
