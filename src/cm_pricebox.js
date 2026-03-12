@@ -2,13 +2,13 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2025/11/26 11:03:22.000000
-//+ Revised:	2026/03/12 12:39:04.103402
+//+ Revised:	2026/03/12 12:44:51.481675
 // ------------------------------------------------------------------------
 
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
-// @version      1.7.6
+// @version      1.7.7
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable, copy-as-image includes card art)
 // @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
@@ -81,10 +81,20 @@
 
     // Load the main card image via GM_xmlhttpRequest (bypasses CORS on S3 origin)
     // then create an object URL so the canvas doesn't get tainted.
-    // CardMarket singles pages have the card art in img.is-front.
+    // Try multiple selectors; always require an S3 URL (never the placeholder).
     const getCardImage = () => {
-        const el = document.querySelector('img.is-front');
-        const src = el?.dataset.echo ?? el?.src;
+        const S3 = 'product-images.s3.cardmarket.com';
+        const els = [
+            document.querySelector('img.is-front'),
+            document.querySelector(`img[data-echo*="${S3}"]`),
+            document.querySelector(`img[src*="${S3}"]`),
+        ];
+        let src = null;
+        for (const el of els) {
+            if (!el) continue;
+            const s = el.dataset.echo || el.src;
+            if (s?.includes(S3)) { src = s; break; }
+        }
         if (!src) return Promise.resolve(null);
         return new Promise((resolve) => {
             GM_xmlhttpRequest({
