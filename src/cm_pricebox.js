@@ -2,13 +2,13 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2025/11/26 11:03:22.000000
-//+ Revised:	2026/03/12 14:16:10.487652
+//+ Revised:	2026/03/12 14:21:34.193902
 // ------------------------------------------------------------------------
 
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
-// @version      1.7.9
+// @version      1.8.0
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable, copy-as-image includes card art)
 // @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
@@ -110,11 +110,17 @@
                         console.log('[PriceBox] getCardImage: bad blob size', blob?.size);
                         resolve(null); return;
                     }
-                    const objUrl = URL.createObjectURL(blob);
-                    const img = new Image();
-                    img.onload = () => { URL.revokeObjectURL(objUrl); resolve(img); };
-                    img.onerror = () => { URL.revokeObjectURL(objUrl); console.log('[PriceBox] getCardImage: img.onerror'); resolve(null); };
-                    img.src = objUrl;
+                    // Use a data URL instead of an object URL — CardMarket's CSP
+                    // blocks blob: in img-src, which would cause img.onerror.
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const img = new Image();
+                        img.onload = () => resolve(img);
+                        img.onerror = () => { console.log('[PriceBox] getCardImage: img.onerror (data url)'); resolve(null); };
+                        img.src = reader.result;
+                    };
+                    reader.onerror = () => { console.log('[PriceBox] getCardImage: reader.onerror'); resolve(null); };
+                    reader.readAsDataURL(blob);
                 },
                 onerror: (e) => { console.log('[PriceBox] getCardImage: onerror', e); resolve(null); },
             });
