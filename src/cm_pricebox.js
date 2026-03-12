@@ -2,13 +2,13 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2025/11/26 11:03:22.000000
-//+ Revised:	2026/03/12 12:44:51.481675
+//+ Revised:	2026/03/12 12:46:06.500373
 // ------------------------------------------------------------------------
 
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
-// @version      1.7.7
+// @version      1.7.8
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable, copy-as-image includes card art)
 // @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
@@ -85,6 +85,7 @@
     const getCardImage = () => {
         const S3 = 'product-images.s3.cardmarket.com';
         const els = [
+            document.querySelector(`img.is-front:not(.lazy)`),  // current slide (already loaded)
             document.querySelector('img.is-front'),
             document.querySelector(`img[data-echo*="${S3}"]`),
             document.querySelector(`img[src*="${S3}"]`),
