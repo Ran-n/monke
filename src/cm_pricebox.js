@@ -1,10 +1,16 @@
+// -*- coding: utf-8 -*-
+// ------------------------------------------------------------------------
+//+ Authors: 	Ran#
+//+ Created:	2025/11/26 11:03:22.000000
+//+ Revised:	2026/03/12 09:05:36.431228
+// ------------------------------------------------------------------------
+
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
 // @version      1.3.1
-// @description  2026-03-12
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable)
-// @author       Ran# <ran-n@tutanota.com>
+// @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=cardmarket.com
 // @grant        none

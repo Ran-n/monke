@@ -1,12 +1,18 @@
+// -*- coding: utf-8 -*-
+// ------------------------------------------------------------------------
+//+ Authors: 	Ran#
+//+ Created:	2025/11/26 11:03:22.000000
+//+ Revised:	2026/03/12 09:05:36.431228
+// ------------------------------------------------------------------------
+
 // ==UserScript==
 // @name         Hover Copy Image with OK
 // @namespace    Violentmonkey Scripts
 // @version      1.0.0
-// @description  26/11/2025, 11:03:22 AM
 // @description  Hover over images to copy them to clipboard with OK feedback
-// @author       Ran# <ran-n@tutanota.com>
+// @author       Ran# <ran.hash@proton.me>
 // @match        *://*/*
-// @icon         
+// @icon
 // @grant        none
 // @license      GPLv3
 // @homepageURL  https://github.com/Ran-n/monke/blob/main/src/hover_img_copy.js

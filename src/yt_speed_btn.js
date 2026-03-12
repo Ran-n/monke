@@ -1,12 +1,18 @@
+// -*- coding: utf-8 -*-
+// ------------------------------------------------------------------------
+//+ Authors: 	Ran#
+//+ Created:	2025/04/29 00:00:00.000000
+//+ Revised:	2026/03/12 09:05:36.431228
+// ------------------------------------------------------------------------
+
 // ==UserScript==
 // @name         YouTube Custom Speed Button (Full Sync Per Channel)
 // @namespace    Violentmonkey Scripts
 // @version      2.2.0
-// @description  2025-04-29
 // @description  Remembers speed per channel, syncs with YT, styled, auto-selects, always updates input
-// @author       Ran# <ran-n@tutanota.com>
+// @author       Ran# <ran.hash@proton.me>
 // @match        https://www.youtube.com/*
-// @icon         
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
 // @grant        none
 // @license      GPLv3
 // @homepageURL  https://github.com/Ran-n/monke/blob/main/src/yt_speed_btn.js

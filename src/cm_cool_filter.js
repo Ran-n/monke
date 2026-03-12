@@ -1,9 +1,16 @@
+// -*- coding: utf-8 -*-
+// ------------------------------------------------------------------------
+//+ Authors: 	Ran#
+//+ Created:	2024/11/26 11:39:41.000000
+//+ Revised:	2026/03/12 09:05:36.431228
+// ------------------------------------------------------------------------
+
 // ==UserScript==
 // @name         Cardmarket Cool Filter
 // @namespace    Violentmonkey Scripts
 // @version      1.0.0
-// @description  26/11/2024, 11:39:41 AM
-// @author       Ran# <ran-n@tutanota.com>
+// @description  Auto-applies seller reputation and language filters on CardMarket singles pages
+// @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/*/*/Products/Singles/*/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=cardmarket.com
 // @grant        none

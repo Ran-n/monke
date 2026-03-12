@@ -1,15 +1,23 @@
+// -*- coding: utf-8 -*-
+// ------------------------------------------------------------------------
+//+ Authors: 	Ran#
+//+ Created:	2026/03/10 10:57:23.000000
+//+ Revised:	2026/03/12 09:05:36.431228
+// ------------------------------------------------------------------------
+
 // ==UserScript==
-// @name        Format OPTCG TopDecks
-// @namespace   Violentmonkey Scripts
-// @version     4.4
-// @description Reshape onepiecetopdecks.com deck pages to personal preference: kill sidebar, expand gallery, show card codes on images.
-// @grant       GM_xmlhttpRequest
-// @author      Ran#
-// @match       https://onepiecetopdecks.com/deck-list/*
-// @license     GPL-3.0-only; https://www.gnu.org/licenses/gpl-3.0.html
-// @homepageURL https://github.com/Ran-n/monke/blob/main/src/format_topdecks.js
-// @downloadURL https://raw.githubusercontent.com/Ran-n/monke/main/src/format_topdecks.js
-// @updateURL   https://raw.githubusercontent.com/Ran-n/monke/main/src/format_topdecks.js
+// @name         Format OPTCG TopDecks
+// @namespace    Violentmonkey Scripts
+// @version      4.4
+// @description  Reshape onepiecetopdecks.com deck pages: kill sidebar, expand gallery, show card codes on images
+// @author       Ran# <ran.hash@proton.me>
+// @match        https://onepiecetopdecks.com/deck-list/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=onepiecetopdecks.com
+// @grant        GM_xmlhttpRequest
+// @license      GPLv3
+// @homepageURL  https://github.com/Ran-n/monke/blob/main/src/format_topdecks.js
+// @downloadURL  https://raw.githubusercontent.com/Ran-n/monke/main/src/format_topdecks.js
+// @updateURL    https://raw.githubusercontent.com/Ran-n/monke/main/src/format_topdecks.js
 // ==/UserScript==
 
 (function () {

@@ -1,17 +1,24 @@
+// -*- coding: utf-8 -*-
+// ------------------------------------------------------------------------
+//+ Authors: 	Ran#
+//+ Created:	2025/05/20 08:17:44.000000
+//+ Revised:	2026/03/12 09:05:36.431228
+// ------------------------------------------------------------------------
+
 // ==UserScript==
 // @name         Cardmarket export wants / wishlist
 // @namespace    Violentmonkey Scripts
 // @version      1.1
-// @description  20/05/2025, 8:17:44 AM
-// @author       Ran# <ran-n@tutanota.com>
+// @description  Exports CardMarket wishlist/wants list to clipboard as formatted text
+// @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/*/*/Wants/*
 // @exclude      https://www.cardmarket.com/*/*/Wants/*/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=cardmarket.com
 // @grant        GM_setClipboard
 // @license      GPLv3
 // @homepageURL  https://github.com/Ran-n/monke/blob/main/src/cm_export_wishlist.js
-// @downloadURL  https://github.com/Ran-n/monke/blob/main/src/cm_export_wishlist.js
-// @updateURL    https://github.com/Ran-n/monke/blob/main/src/cm_export_wishlist.js
+// @downloadURL  https://raw.githubusercontent.com/Ran-n/monke/main/src/cm_export_wishlist.js
+// @updateURL    https://raw.githubusercontent.com/Ran-n/monke/main/src/cm_export_wishlist.js
 // ==/UserScript==
 
 (function () {

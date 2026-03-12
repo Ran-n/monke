@@ -1,10 +1,16 @@
+// -*- coding: utf-8 -*-
+// ------------------------------------------------------------------------
+//+ Authors: 	Ran#
+//+ Created:	2025/04/29 00:00:00.000000
+//+ Revised:	2026/03/12 09:05:36.431228
+// ------------------------------------------------------------------------
+
 // ==UserScript==
 // @name         Cardmarket show thumbnails
 // @namespace    Violentmonkey Scripts
 // @version      1.4.0
-// @description  2025-04-29
 // @description  Open all thumbnails at once so you don't have to hover over each item.
-// @author       Ran# <ran-n@tutanota.com>
+// @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=cardmarket.com
 // @grant        none
