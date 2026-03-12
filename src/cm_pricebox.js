@@ -2,13 +2,13 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2025/11/26 11:03:22.000000
-//+ Revised:	2026/03/12 09:05:36.431228
+//+ Revised:	2026/03/12 12:00:00.000000
 // ------------------------------------------------------------------------
 
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
-// @version      1.3.1
+// @version      1.5.0
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable)
 // @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
@@ -44,6 +44,7 @@
     const ICONS = {
         refresh:    '↻',
         refreshing: '⟳',
+        copyTxt:    '📋',
         copy:       '📷',
         ok:         '✔️',
         ko:         '❌',
@@ -59,6 +60,22 @@
         country.flagCode
             ? `<img src="https://flagcdn.com/16x12/${country.flagCode}.png" width="16" height="12" style="vertical-align:middle;">`
             : `<span style="vertical-align:middle;">${country.flagEmoji}</span>`;
+
+    // Pre-fetch flag images as base64 data URLs so SVG foreignObject can embed
+    // them (Chromium blocks external URLs in SVG blob contexts).
+    const _flagDataUrlCache = {};
+    const getFlagDataUrl = async (code) => {
+        if (_flagDataUrlCache[code]) return _flagDataUrlCache[code];
+        try {
+            const resp = await fetch(`https://flagcdn.com/16x12/${code}.png`);
+            const blob = await resp.blob();
+            return await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => { _flagDataUrlCache[code] = reader.result; resolve(reader.result); };
+                reader.readAsDataURL(blob);
+            });
+        } catch { return null; }
+    };
 
     // ─── Price extraction ──────────────────────────────────────────────────────
 
@@ -284,15 +301,17 @@
         });
 
         // Buttons
-        const toggleBtn  = makeButton(ICONS.eyeOpen, 'Toggle visibility');
-        const refreshBtn = makeButton(ICONS.refresh,  'Refresh prices');
-        const copyBtn    = makeButton(ICONS.copy,     'Copy info as image');
+        const toggleBtn   = makeButton(ICONS.eyeOpen, 'Toggle visibility');
+        const refreshBtn  = makeButton(ICONS.refresh,  'Refresh prices');
+        const copyTxtBtn  = makeButton(ICONS.copyTxt,  'Copy info as text');
+        const copyBtn     = makeButton(ICONS.copy,     'Copy info as image');
         refreshBtn.style.marginLeft = '6px';
+        copyTxtBtn.style.marginLeft = '6px';
         copyBtn.style.marginLeft    = '6px';
 
         const headerBar = document.createElement('div');
         Object.assign(headerBar.style, { display: 'flex', alignItems: 'center' });
-        headerBar.append(toggleBtn, refreshBtn, copyBtn);
+        headerBar.append(toggleBtn, refreshBtn, copyTxtBtn, copyBtn);
 
         const content = document.createElement('div');
         content.className = 'widget-content';
@@ -304,18 +323,16 @@
             const numericValues = COUNTRIES.map(c => parseFloat(p[c.key])).filter(v => !isNaN(v));
             const minVal = numericValues.length ? Math.min(...numericValues) : 0;
 
-            // Single-column list — each row is fully inline (white-space:nowrap)
-            // so no price/percentage ever wraps or gets clipped. The widget
-            // auto-sizes to the widest row via width:max-content on the shell.
-            const rowsHTML = COUNTRIES.map((c) => {
+            // 2-column grid; each cell stacks the price on top and % below.
+            const cellsHTML = COUNTRIES.map((c) => {
                 const val = parseFloat(p[c.key]);
                 let pctHtml = '';
                 if (!isNaN(val) && minVal > 0 && c.label !== 'World') {
                     const diff = ((val - minVal) / minVal) * 100;
-                    pctHtml = `<span style="color:${getColorForPct(diff)};font-size:11px;margin-left:6px;">(+${diff.toFixed(2)}%)</span>`;
+                    pctHtml = `<div style="color:${getColorForPct(diff)};font-size:11px;margin-top:1px;">(+${diff.toFixed(2)}%)</div>`;
                 }
                 return `
-                    <div style="display:flex;align-items:center;white-space:nowrap;">
+                    <div style="white-space:nowrap;">
                       <span style="display:inline-flex;align-items:center;gap:4px;color:#888;">
                         ${flagHtml(c)}&nbsp;<span style="color:${c.color};">${p[c.key]}</span><span>${SYMBOL_MONEY}</span>
                       </span>
@@ -328,7 +345,7 @@
                   <div><strong style="color:#ccc">${mainTitle}</strong></div>
                   ${subtitle ? `<div style="color:#777;font-size:12px;margin-top:2px;">${subtitle}</div>` : ''}
                 </div>
-                <div style="display:flex;flex-direction:column;gap:3px;">${rowsHTML}</div>`;
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;">${cellsHTML}</div>`;
         };
 
         // ── Visibility state ────────────────────────────────────────────────
@@ -337,9 +354,10 @@
         const isVisible  = savedState === null || savedState === 'visible';
 
         const applyVisibility = (visible) => {
-            content.style.display    = visible ? 'block'       : 'none';
-            toggleBtn.innerHTML      = visible ? ICONS.eyeOpen : ICONS.eyeSlash;
-            copyBtn.style.display    = visible ? 'flex'        : 'none';
+            content.style.display       = visible ? 'block'       : 'none';
+            toggleBtn.innerHTML         = visible ? ICONS.eyeOpen : ICONS.eyeSlash;
+            copyTxtBtn.style.display    = visible ? 'flex'        : 'none';
+            copyBtn.style.display       = visible ? 'flex'        : 'none';
             if (refreshBtn.dataset.permaHidden !== 'true')
                 refreshBtn.style.display = visible ? 'flex' : 'none';
         };
@@ -384,6 +402,41 @@
             setTimeout(hideRefreshIfDone, 250);
         };
 
+        // ── Copy as text ────────────────────────────────────────────────────
+
+        copyTxtBtn.onclick = async () => {
+            copyTxtBtn.disabled = true;
+            try {
+                const rows = await waitForRows();
+                const p = extractPrices(rows);
+                const numericValues = COUNTRIES.map(c => parseFloat(p[c.key])).filter(v => !isNaN(v));
+                const minVal = numericValues.length ? Math.min(...numericValues) : 0;
+
+                const lines = [
+                    mainTitle,
+                    ...(subtitle ? [subtitle] : []),
+                    '',
+                    ...COUNTRIES.map(c => {
+                        const val = parseFloat(p[c.key]);
+                        let pct = '';
+                        if (!isNaN(val) && minVal > 0 && c.label !== 'World') {
+                            const diff = ((val - minVal) / minVal) * 100;
+                            pct = ` (+${diff.toFixed(2)}%)`;
+                        }
+                        return `${c.label}: ${p[c.key]}${SYMBOL_MONEY}${pct}`;
+                    }),
+                    '',
+                    location.href,
+                ];
+                const ok = await copyTextToClipboard(lines.join('\n'));
+                copyTxtBtn.textContent = ok ? ICONS.ok : ICONS.ko;
+            } catch {
+                copyTxtBtn.textContent = ICONS.ko;
+            } finally {
+                setTimeout(() => { copyTxtBtn.innerHTML = ICONS.copyTxt; copyTxtBtn.disabled = false; }, 1200);
+            }
+        };
+
         // ── Copy as image ───────────────────────────────────────────────────
 
         const buildPayload = (p) => ({
@@ -405,10 +458,17 @@
                 const payload = buildPayload(extractPrices(rows));
                 const now = new Date(payload.generatedAt).toLocaleString();
 
-                const rowsHtml = COUNTRIES.map(c => {
+                // Pre-fetch flags as data URLs so they render inside SVG blobs
+                // (both Chromium and Firefox block external URLs in that context).
+                const flagDataUrls = await Promise.all(
+                    COUNTRIES.map(c => c.flagCode ? getFlagDataUrl(c.flagCode) : Promise.resolve(null))
+                );
+
+                const rowsHtml = COUNTRIES.map((c, i) => {
                     const v = payload.prices[c.key] ?? 'N/A';
-                    const imgOrEmoji = c.flagCode
-                        ? `<img src="https://flagcdn.com/16x12/${c.flagCode}.png" width="16" height="12">`
+                    const dataUrl = flagDataUrls[i];
+                    const imgOrEmoji = dataUrl
+                        ? `<img src="${dataUrl}" width="16" height="12">`
                         : c.flagEmoji;
                     return `
                         <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
