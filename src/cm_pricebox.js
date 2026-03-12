@@ -2,13 +2,13 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2025/11/26 11:03:22.000000
-//+ Revised:	2026/03/12 11:14:44.662961
+//+ Revised:	2026/03/12 12:00:00.000000
 // ------------------------------------------------------------------------
 
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
-// @version      1.7.3
+// @version      1.7.4
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable, copy-as-image includes card art)
 // @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
@@ -83,19 +83,22 @@
     // then create an object URL so the canvas doesn't get tainted.
     // CardMarket singles pages have the card art in img.is-front.
     const getCardImage = () => {
-        const src = document.querySelector('img.is-front')?.src;
+        const el = document.querySelector('img.is-front');
+        const src = el?.src;
+        console.log('[PriceBox] getCardImage: el=', el, 'src=', src);
         if (!src) return Promise.resolve(null);
         return new Promise((resolve) => {
             GM_xmlhttpRequest({
                 method: 'GET', url: src, responseType: 'blob',
                 onload: (resp) => {
+                    console.log('[PriceBox] GM_xmlhttpRequest onload: status=', resp.status, 'response=', resp.response);
                     const url = URL.createObjectURL(resp.response);
                     const img = new Image();
-                    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-                    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+                    img.onload = () => { URL.revokeObjectURL(url); console.log('[PriceBox] card img loaded ok'); resolve(img); };
+                    img.onerror = (e) => { URL.revokeObjectURL(url); console.log('[PriceBox] card img onerror', e); resolve(null); };
                     img.src = url;
                 },
-                onerror: () => resolve(null),
+                onerror: (e) => { console.log('[PriceBox] GM_xmlhttpRequest onerror', e); resolve(null); },
             });
         });
     };
