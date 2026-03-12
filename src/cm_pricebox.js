@@ -2,13 +2,13 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2025/11/26 11:03:22.000000
-//+ Revised:	2026/03/12 12:35:36.184640
+//+ Revised:	2026/03/12 12:39:04.103402
 // ------------------------------------------------------------------------
 
 // ==UserScript==
 // @name         CardMarket PriceBox
 // @namespace    Violentmonkey Scripts
-// @version      1.7.5
+// @version      1.7.6
 // @description  Floating draggable widget showing min price from World and Spain, always aligned with Price Trend row but placed in the empty right margin area (night mode, dual-language Spain detection, toggleable, copy-as-image includes card art)
 // @author       Ran# <ran.hash@proton.me>
 // @match        https://www.cardmarket.com/es/*/Products/Singles/*
@@ -363,19 +363,6 @@
         return canvas;
     }
 
-    async function copyBlobToClipboard(blob) {
-        if (!blob) return false;
-        try {
-            if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
-                await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-                return true;
-            }
-            return false;
-        } catch {
-            return false;
-        }
-    }
-
     // ─── Widget placement ─────────────────────────────────────────────────────
 
     // Try to insert the widget inline in the page flow, directly above the
@@ -627,13 +614,19 @@
         copyBtn.onclick = async () => {
             copyBtn.disabled = true;
             try {
-                const [rows, cardImg] = await Promise.all([waitForRows(), getCardImage()]);
-                const p = extractPrices(rows);
-                const canvas = await drawPricesToCanvas(p, mainTitle, subtitle, cardImg);
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                const ok = await copyBlobToClipboard(blob);
-                copyBtn.textContent = ok ? ICONS.ok : ICONS.ko;
-            } catch {
+                // Build the blob asynchronously but pass the Promise directly to
+                // ClipboardItem so clipboard.write() is called within the user
+                // gesture — avoids gesture-expiry errors from the async delays.
+                const blobPromise = (async () => {
+                    const [rows, cardImg] = await Promise.all([waitForRows(), getCardImage()]);
+                    const p = extractPrices(rows);
+                    const canvas = await drawPricesToCanvas(p, mainTitle, subtitle, cardImg);
+                    return new Promise(res => canvas.toBlob(res, 'image/png'));
+                })();
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blobPromise })]);
+                copyBtn.textContent = ICONS.ok;
+            } catch (e) {
+                console.error('[PriceBox] copy as image failed:', e);
                 copyBtn.textContent = ICONS.ko;
             } finally {
                 setTimeout(() => { copyBtn.innerHTML = ICONS.copy; copyBtn.disabled = false; }, 1200);
