@@ -1,8 +1,8 @@
 // -*- coding: utf-8 -*-
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
-//+ Created:	2025/11/26 11:03:22.000000
-//+ Revised:	2026/03/12 09:05:36.431228
+//+ Created:	2026/02/28 16:42:15.000000
+//+ Revised:	2026/03/16 10:22:52.231431
 // ------------------------------------------------------------------------
 
 // ==UserScript==
@@ -13,7 +13,7 @@
 // @author       Ran# <ran.hash@proton.me>
 // @match        *://*/*
 // @icon
-// @grant        none
+// @grant        GM_addStyle
 // @license      GPLv3
 // @homepageURL  https://github.com/Ran-n/monke/blob/main/src/hover_img_copy.js
 // @downloadURL  https://raw.githubusercontent.com/Ran-n/monke/main/src/hover_img_copy.js

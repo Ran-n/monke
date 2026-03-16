@@ -2,7 +2,7 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2024/11/26 11:39:41.000000
-//+ Revised:	2026/03/12 09:05:36.431228
+//+ Revised:	2026/03/16 10:22:52.231431
 // ------------------------------------------------------------------------
 
 // ==UserScript==
@@ -20,11 +20,13 @@
 // @updateURL    https://raw.githubusercontent.com/Ran-n/monke/main/src/cm_cool_filter.js
 // ==/UserScript==
 
-// https://www.cardmarket.com/en/OnePiece/Products/Singles/Paramount-War/Nami-OP02-036-V1?sellerReputation=3&language=1
-const link = new URLSearchParams(window.location.search);
-if (link.get('sellerReputation') !== '3' || link.get('language') !== '1') {
-    link.set('sellerReputation', '3');
-    link.set('language', '1');
-    window.location.search = link.toString();
-    console.log('DEBUG:: filtered')
-}
+(function () {
+    'use strict';
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sellerReputation') !== '3' || params.get('language') !== '1') {
+        params.set('sellerReputation', '3');
+        params.set('language', '1');
+        window.location.search = params.toString();
+    }
+})();
