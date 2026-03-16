@@ -1,14 +1,14 @@
 // -*- coding: utf-8 -*-
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
-//+ Created:	2025/04/29 00:00:00.000000
-//+ Revised:	2026/03/12 09:05:36.431228
+//+ Created:	2026/02/28 16:42:15.000000
+//+ Revised:	2026/03/16 10:07:01.565107
 // ------------------------------------------------------------------------
 
 // ==UserScript==
 // @name         YouTube Custom Speed Button (Full Sync Per Channel)
 // @namespace    Violentmonkey Scripts
-// @version      2.2.0
+// @version      3.0.0
 // @description  Remembers speed per channel, syncs with YT, styled, auto-selects, always updates input
 // @author       Ran# <ran.hash@proton.me>
 // @match        https://www.youtube.com/*
@@ -23,115 +23,155 @@
 (function () {
     'use strict';
 
+    const BTN_ID   = 'yt-speed-btn';
+    const STOR_KEY = 'yt_speed_';
+
+    let syncTimer   = null;
+    let retryTimer  = null;
+
+    // -------------------------------------------------------------------------
+
+    function isWatchPage() {
+        return location.pathname === '/watch';
+    }
+
     function getChannelId() {
         const meta = document.querySelector('meta[itemprop="channelId"]');
-        if (meta && meta.content) return meta.content;
-        const link = document.querySelector('ytd-video-owner-renderer a[href^="/channel/"]');
-        if (link) return link.href.split('/channel/')[1].split(/[/?#]/)[0];
-        const anyLink = document.querySelector('a[href^="/channel/"]');
-        if (anyLink) return anyLink.href.split('/channel/')[1].split(/[/?#]/)[0];
+        if (meta?.content) return meta.content;
+        const link = document.querySelector('ytd-video-owner-renderer a[href^="/channel/"]')
+                  || document.querySelector('a[href^="/channel/"]');
+        if (link) return link.href.split('/channel/')[1]?.split(/[/?#]/)[0] ?? null;
         return null;
     }
 
-    function getSavedSpeed(channelId) {
-        return localStorage.getItem('yt_speed_' + channelId);
+    function loadSpeed(channelId) {
+        const val = parseFloat(localStorage.getItem(STOR_KEY + channelId));
+        return isNaN(val) ? null : val;
     }
 
     function saveSpeed(channelId, speed) {
-        localStorage.setItem('yt_speed_' + channelId, speed);
+        localStorage.setItem(STOR_KEY + channelId, speed);
     }
 
-    function insertSpeedButton() {
+    // -------------------------------------------------------------------------
+
+    function removeButton() {
+        clearInterval(syncTimer);
+        clearTimeout(retryTimer);
+        syncTimer  = null;
+        retryTimer = null;
+        document.getElementById(BTN_ID)?.remove();
+    }
+
+    // Returns true when done (inserted or not a watch page), false when the
+    // action bar isn't in the DOM yet and we should retry.
+    function tryInsert() {
+        if (!isWatchPage()) return true;
+        if (document.getElementById(BTN_ID)) return true;
+
         const actionBar = document.querySelector('#top-level-buttons-computed, #top-level-buttons');
-        if (!actionBar || document.getElementById('yt-speed-btn')) return;
+        if (!actionBar) return false;
 
+        // --- Build button ---
         const btn = document.createElement('button');
-        btn.id = 'yt-speed-btn';
-        btn.className = actionBar.firstElementChild?.className || '';
-        btn.style.display = 'flex';
-        btn.style.alignItems = 'center';
-        btn.style.height = '36px';
-        btn.style.marginLeft = '24px';
-        btn.style.background = 'var(--yt-spec-badge-chip-background, #222)';
-        btn.style.color = 'var(--yt-spec-text-primary, #fff)';
-        btn.style.border = 'none';
-        btn.style.borderRadius = '18px';
-        btn.style.cursor = 'pointer';
-        btn.style.padding = '0 14px 0 10px';
-        btn.style.fontSize = '15px';
-        btn.style.gap = '12px';
-
+        btn.id = BTN_ID;
+        Object.assign(btn.style, {
+            display:      'flex',
+            alignItems:   'center',
+            height:       '36px',
+            marginLeft:   '24px',
+            background:   'var(--yt-spec-badge-chip-background, #222)',
+            color:        'var(--yt-spec-text-primary, #fff)',
+            border:       'none',
+            borderRadius: '18px',
+            cursor:       'pointer',
+            padding:      '0 14px 0 10px',
+            fontSize:     '15px',
+            gap:          '12px',
+        });
         btn.innerHTML = `
-            <div style="display:flex; align-items:center; justify-content:center; width:100%;">
-                <span style="flex:1; text-align:center;">Speed</span>
-                <input type="number" min="0.1" max="16" step="0.05"
-                    style="width:60px; background:#f3f3f3; color:#111; border-radius:6px; border:1px solid #ccc; outline:none; font-size:15px; text-align:center; padding:6px 0 6px 0; margin-bottom:2px; margin-left:10px;">
-            </div>
+            <span>Speed</span>
+            <input type="number" min="0.1" max="16" step="0.05"
+                style="width:60px;background:#f3f3f3;color:#111;border-radius:6px;
+                       border:1px solid #ccc;outline:none;font-size:15px;
+                       text-align:center;padding:6px 0;margin-left:10px;">
         `;
-
         actionBar.appendChild(btn);
 
+        // --- Wire up input ---
         const input = btn.querySelector('input');
-        let lastSpeed = null;
-        let channelId = getChannelId();
+        let lastRate   = null;
+        let channelId  = null;
 
-        // Auto-select all contents on click
-        input.addEventListener('focus', function (e) {
-            e.target.select();
-        });
+        input.addEventListener('focus', e => e.target.select());
 
-        // Set input to saved speed or current video speed
-        function syncInputToVideo(forceSave) {
-            const video = document.querySelector('video');
-            if (video) {
-                let speed = video.playbackRate;
-                if (channelId) {
-                    const saved = getSavedSpeed(channelId);
-                    if (saved && !input._synced) {
-                        speed = parseFloat(saved);
-                        video.playbackRate = speed;
-                        input._synced = true;
-                    }
-                }
-                // Always update input, even if focused
-                input.value = speed;
-                lastSpeed = speed;
-                // If speed changed via YT menu, save it
-                if (channelId && forceSave) saveSpeed(channelId, speed);
-            }
-        }
-
-        // Set video speed from input and save per channel
-        function setSpeed(val) {
-            if (typeof val !== 'number' || isNaN(val) || val < 0.1 || val > 16) return;
+        input.addEventListener('input', () => {
+            const val = parseFloat(input.value);
+            if (isNaN(val) || val < 0.1 || val > 16) return;
             const video = document.querySelector('video');
             if (video) video.playbackRate = val;
             if (channelId) saveSpeed(channelId, val);
-        }
-
-        // When input changes, update video speed and save
-        input.addEventListener('input', function (e) {
-            setSpeed(parseFloat(e.target.value));
         });
 
-        // On load, set input to saved speed or current video speed
-        setTimeout(() => syncInputToVideo(false), 1000);
+        // --- Apply saved speed (retries until channelId resolves) ---
+        let applyAttempts = 0;
 
-        // Keep input in sync with video speed (if changed via YT menu)
-        setInterval(() => {
+        function applyChannelSpeed() {
+            channelId = getChannelId();
             const video = document.querySelector('video');
-            if (video && video.playbackRate != lastSpeed) {
-                syncInputToVideo(true); // Save if changed via YT menu
+            if (!video) {
+                if (applyAttempts++ < 20) setTimeout(applyChannelSpeed, 500);
+                return;
             }
+
+            if (channelId) {
+                const saved = loadSpeed(channelId);
+                if (saved !== null) {
+                    video.playbackRate = saved;
+                    input.value = saved;
+                    lastRate = saved;
+                    return;
+                }
+            }
+
+            input.value = video.playbackRate;
+            lastRate = video.playbackRate;
+
+            // channelId not yet in DOM — keep retrying
+            if (!channelId && applyAttempts++ < 20) setTimeout(applyChannelSpeed, 500);
+        }
+
+        applyChannelSpeed();
+
+        // --- Sync input when speed is changed via YouTube's own menu ---
+        clearInterval(syncTimer);
+        syncTimer = setInterval(() => {
+            const video = document.querySelector('video');
+            if (!video) return;
+            const rate = video.playbackRate;
+            if (rate === lastRate) return;
+            input.value = rate;
+            lastRate = rate;
+            if (channelId) saveSpeed(channelId, rate);
         }, 500);
+
+        return true;
     }
 
-    let lastUrl = '';
-    setInterval(() => {
-        if (location.href !== lastUrl) {
-            lastUrl = location.href;
-            setTimeout(insertSpeedButton, 1000);
-        }
-        insertSpeedButton();
-    }, 1500);
+    // Schedules an insert attempt, retrying every 400 ms until the bar is ready.
+    function scheduleInsert(delay = 0) {
+        clearTimeout(retryTimer);
+        retryTimer = setTimeout(function retry() {
+            if (!tryInsert()) retryTimer = setTimeout(retry, 400);
+        }, delay);
+    }
+
+    // -------------------------------------------------------------------------
+
+    // SPA navigation events fired by YouTube's own router
+    document.addEventListener('yt-navigate-start',  removeButton);
+    document.addEventListener('yt-navigate-finish', () => scheduleInsert(300));
+
+    // Hard page load / direct URL visit (yt-navigate-finish may not fire)
+    if (isWatchPage()) scheduleInsert();
 })();
