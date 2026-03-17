@@ -2,7 +2,7 @@
 // ------------------------------------------------------------------------
 //+ Authors: 	Ran#
 //+ Created:	2026/02/28 16:42:15.000000
-//+ Revised:	2026/03/16 10:22:52.231431
+//+ Revised:	2026/03/17 00:00:00.000000
 // ------------------------------------------------------------------------
 
 // ==UserScript==
@@ -389,8 +389,28 @@
     // Make the widget draggable (used as fallback when inline insertion fails).
     // Saves and restores position via localStorage.
     const enableDrag = (widget) => {
-        const saved = JSON.parse(localStorage.getItem(WIDGET_POSITION_KEY) || 'null');
-        if (saved) { widget.style.top = `${saved.top}px`; widget.style.left = `${saved.left}px`; }
+        const applyPosForWidth = () => {
+            const allSaved = JSON.parse(localStorage.getItem(WIDGET_POSITION_KEY) || 'null');
+            const saved = allSaved?.[window.innerWidth] ?? null;
+            if (saved) {
+                widget.style.top  = `${saved.top}px`;
+                widget.style.left = `${saved.left}px`;
+            } else {
+                const dd = findPriceTrendDd();
+                if (dd) {
+                    const rect = dd.getBoundingClientRect();
+                    widget.style.top  = `${window.scrollY + rect.top  - WINDOW_HEIGHT_OFFSET}px`;
+                    widget.style.left = `${window.scrollX + rect.right - WINDOW_WIDTH_OFFSET}px`;
+                }
+            }
+        };
+
+        applyPosForWidth();
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(applyPosForWidth, 100);
+        });
 
         widget.style.cursor = 'grab';
         let dragging = false, ox = 0, oy = 0;
@@ -412,10 +432,12 @@
             if (!dragging) return;
             dragging = false;
             widget.style.cursor = 'grab';
-            localStorage.setItem(WIDGET_POSITION_KEY, JSON.stringify({
+            const current = JSON.parse(localStorage.getItem(WIDGET_POSITION_KEY) || '{}');
+            current[window.innerWidth] = {
                 top:  parseInt(widget.style.top),
                 left: parseInt(widget.style.left),
-            }));
+            };
+            localStorage.setItem(WIDGET_POSITION_KEY, JSON.stringify(current));
         });
     };
 
@@ -471,8 +493,7 @@
             lineHeight:      '1.4',
             fontFamily:      'Arial, sans-serif',
             color:           '#f0f0f0',
-            width:           'max-content',
-            maxWidth:        '300px',
+            width:           '240px',
             transform:       `scale(${WINDOW_SCALE})`,
             transformOrigin: 'top left',
         });
@@ -518,7 +539,7 @@
             }).join('');
 
             content.innerHTML = `
-                <div style="margin-bottom:6px;max-width:280px;word-break:break-word;">
+                <div style="margin-bottom:6px;word-break:break-word;">
                   <div><strong style="color:#ccc">${mainTitle}</strong></div>
                   ${subtitle ? `<div style="color:#777;font-size:12px;margin-top:2px;">${subtitle}</div>` : ''}
                 </div>
@@ -645,15 +666,6 @@
 
         if (!tryInsertInline(widget)) {
             // Inline insertion failed — use draggable floating widget.
-            // Set a sensible default position if none is saved.
-            if (!localStorage.getItem(WIDGET_POSITION_KEY)) {
-                const dd = findPriceTrendDd();
-                if (dd) {
-                    const rect = dd.getBoundingClientRect();
-                    widget.style.top  = `${window.scrollY + rect.top  - WINDOW_HEIGHT_OFFSET}px`;
-                    widget.style.left = `${window.scrollX + rect.right - WINDOW_WIDTH_OFFSET}px`;
-                }
-            }
             enableDrag(widget);
         }
     };
